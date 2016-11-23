@@ -98,7 +98,7 @@
                 element = fieldNode;
 
             if (element && element !== undefined) {
-                field.id = attributeValue(element, 'id');
+                field.id = attributeValue(element, 'id') ? attributeValue(element, 'id') : field.name;
                 field.element = element;
                 field.type = (element.length > 0) ? element[0].type : element.type;
                 field.value = attributeValue(element, 'value');
@@ -318,7 +318,7 @@
                     element = this.form[field.name];
 
                 if (element && element !== undefined) {
-                    field.id = attributeValue(element, 'id');
+                    field.id = attributeValue(element, 'id') ? attributeValue(element, 'id') : field.name;
                     field.element = element;
                     field.type = (element.length > 0) ? element[0].type : element.type;
                     field.value = attributeValue(element, 'value');
