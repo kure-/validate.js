@@ -89,6 +89,54 @@
         this.messages = {};
         this.handlers = {};
         this.conditionals = {};
+        this._validateSingleField = function (fieldObject, fieldNode) {
+            let errors = [];
+
+            var field = fieldObject,
+                element = fieldNode;
+
+            if (element && element !== undefined) {
+                field.id = attributeValue(element, 'id');
+                field.element = element;
+                field.type = (element.length > 0) ? element[0].type : element.type;
+                field.value = attributeValue(element, 'value');
+                field.checked = attributeValue(element, 'checked');
+
+                /*
+                 * Run through the rules for each field.
+                 * If the field has a depends conditional, only validate the field
+                 * if it passes the custom function
+                 */
+
+                if (field.depends && typeof field.depends === "function") {
+                    if (field.depends.call(this, field)) {
+                        var error1 = this._validateField(field, true);
+                        if(typeof error1 !== 'undefined') {
+                            error1.forEach((value) => {
+                                errors.push(value);
+                            });
+                        }
+                    }
+                } else if (field.depends && typeof field.depends === "string" && this.conditionals[field.depends]) {
+                    if (this.conditionals[field.depends].call(this,field)) {
+                        var error2 = this._validateField(field, true);
+                        if(typeof error2 !== 'undefined') {
+                            error2.forEach((value) => {
+                                errors.push(value);
+                            });
+                        }
+                    }
+                } else {
+                    var error3 = this._validateField(field, true);
+                    if(typeof error3 !== 'undefined') {
+                        error3.forEach((value) => {
+                            errors.push(value);
+                        });
+                    }
+                }
+            }
+            return errors;
+        }
 
         for (var i = 0, fieldLength = fields.length; i < fieldLength; i++) {
             var field = fields[i];
@@ -117,7 +165,6 @@
         /*
          * Attach an event callback for the form submission
          */
-
         var _onsubmit = this.form.onsubmit;
 
         this.form.onsubmit = (function(that) {
@@ -156,7 +203,7 @@
         // return this for chaining
         return this;
     };
-    
+
     /*
      * @public
      *
@@ -170,7 +217,7 @@
 
     FormValidator.prototype.setRules = function(fields) {
         this.fields = {};
-        
+
         for (var i = 0, fieldLength = fields.length; i < fieldLength; i++) {
             var field = fields[i];
 
@@ -313,12 +360,13 @@
         return true;
     };
 
+
     /*
      * @private
      * Looks at the fields value and evaluates it against the given rules
      */
 
-    FormValidator.prototype._validateField = function(field) {
+    FormValidator.prototype._validateField = function(field, single = false) {
         var i, j,
             rules = field.rules.split('|'),
             indexOfRequired = field.rules.indexOf('required'),
@@ -328,6 +376,8 @@
          * Run through the rules and execute the validation methods as needed
          */
 
+
+        var returnErrors = [];
         for (i = 0, ruleLength = rules.length; i < ruleLength; i++) {
             var method = rules[i],
                 param = null,
@@ -378,7 +428,6 @@
             /*
              * If the hook failed, add a message to the errors array
              */
-
             if (failed) {
                 // Make sure we have a message for this rule
                 var source = this.messages[field.name + '.' + method] || this.messages[method] || defaults.messages[method],
@@ -393,24 +442,31 @@
                 }
 
                 var existingError;
-                for (j = 0; j < this.errors.length; j += 1) {
-                    if (field.id === this.errors[j].id) {
-                        existingError = this.errors[j];
+                if(!single) {
+                    for (j = 0; j < this.errors.length; j += 1) {
+                        if (field.id === this.errors[j].id) {
+                            existingError = this.errors[j];
+                        }
                     }
-                }
 
-                var errorObject = existingError || {
-                    id: field.id,
-                    display: field.display,
-                    element: field.element,
-                    name: field.name,
-                    message: message,
-                    messages: [],
-                    rule: method
-                };
-                errorObject.messages.push(message);
-                if (!existingError) this.errors.push(errorObject);
+                    var errorObject = existingError || {
+                        id: field.id,
+                        display: field.display,
+                        element: field.element,
+                        name: field.name,
+                        message: message,
+                        messages: [],
+                        rule: method
+                    };
+                    errorObject.messages.push(message);
+                    if (!existingError) this.errors.push(errorObject);
+                } else {
+                    returnErrors.push(message);
+                }
             }
+        }
+        if(single) {
+            return returnErrors;
         }
     };
 
