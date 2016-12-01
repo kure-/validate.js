@@ -92,7 +92,7 @@
         this.handlers = {};
         this.conditionals = {};
         this._validateSingleField = function (fieldObject, fieldNode) {
-            let errors = [];
+            var errors = [];
 
             var field = fieldObject,
                 element = fieldNode;
@@ -114,26 +114,29 @@
                     if (field.depends.call(this, field)) {
                         var error1 = this._validateField(field, true);
                         if(typeof error1 !== 'undefined') {
-                            error1.forEach((value) => {
-                                errors.push(value);
-                            });
+                            error1 = Array.from(error1);
+                            for (var i = 0; i < error1.length; i++) {
+                                errors.push(error1[i]);
+                            }
                         }
                     }
                 } else if (field.depends && typeof field.depends === "string" && this.conditionals[field.depends]) {
                     if (this.conditionals[field.depends].call(this,field)) {
                         var error2 = this._validateField(field, true);
                         if(typeof error2 !== 'undefined') {
-                            error2.forEach((value) => {
-                                errors.push(value);
-                            });
+                            error2 = Array.from(error2);
+                            for (var i = 0; i < error2.length; i++) {
+                                errors.push(error2[i]);
+                            }
                         }
                     }
                 } else {
                     var error3 = this._validateField(field, true);
                     if(typeof error3 !== 'undefined') {
-                        error3.forEach((value) => {
-                            errors.push(value);
-                        });
+                        error3 = Array.from(error3);
+                        for (var i = 0; i < error3.length; i++) {
+                            errors.push(error3[i]);
+                        }
                     }
                 }
             }
@@ -368,7 +371,10 @@
      * Looks at the fields value and evaluates it against the given rules
      */
 
-    FormValidator.prototype._validateField = function(field, single = false) {
+    FormValidator.prototype._validateField = function(field, single) {
+        if(typeof single === undefined) {
+            single = false;
+        }
         var i, j,
             rules = field.rules.split('|'),
             indexOfRequired = field.rules.indexOf('required'),
@@ -461,7 +467,9 @@
                         rule: method
                     };
                     errorObject.messages.push(message);
-                    if (!existingError) this.errors.push(errorObject);
+                    if (!existingError) {
+                        this.errors.push(errorObject)
+                    };
                 } else {
                     returnErrors.push(message);
                 }
